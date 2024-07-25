@@ -12,36 +12,37 @@ import (
 	"github.com/holistic-engineering/codecritique/internal/critique/model"
 )
 
-type Kind string
+type Provider string
 
 const (
-	KindOllama          Kind = "Ollama"
-	KindChatGPT4o       Kind = "ChatGPT4o"
-	KindClaudeSonnet3_5 Kind = "ClaudeSonnet3_5"
+	ProviderOllama    Provider = "Ollama"
+	ProviderOpenAI    Provider = "OpenAI"
+	ProviderAnthropic Provider = "Anthropic"
+	ProviderGroq      Provider = "Groq"
 )
 
 type Client struct {
-	kind        Kind
+	provider    Provider
 	ollamaURL   string
 	ollamaModel string
 }
 
-func New(kind Kind) *Client {
+func New(provider Provider) *Client {
 	return &Client{
-		kind:        kind,
+		provider:    provider,
 		ollamaURL:   "http://localhost:11434/api/generate",
-		ollamaModel: "llama3.1",                            
+		ollamaModel: "llama3.1",
 	}
 }
 
 func (c *Client) Review(ctx context.Context, pr *model.PullRequest) (*model.Review, error) {
-	switch c.kind {
-	case KindOllama:
+	switch c.provider {
+	case ProviderOllama:
 		return c.reviewWithOllama(ctx, pr)
-	case KindChatGPT4o, KindClaudeSonnet3_5:
-		return nil, fmt.Errorf("AI provider %s not implemented yet", c.kind)
+	case ProviderOpenAI, ProviderAnthropic, ProviderGroq:
+		return nil, fmt.Errorf("AI provider %s not implemented yet", c.provider)
 	default:
-		return nil, fmt.Errorf("unknown AI provider: %s", c.kind)
+		return nil, fmt.Errorf("unknown AI provider: %s", c.provider)
 	}
 }
 
