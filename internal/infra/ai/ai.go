@@ -1,11 +1,13 @@
 package ai
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/holistic-engineering/codecritique/internal/critique/model"
 )
@@ -71,9 +73,23 @@ func (c *Client) reviewWithOllama(ctx context.Context, pr *model.PullRequest) (*
 		return nil, fmt.Errorf("ollama returned non-OK status: %s", resp.Status)
 	}
 
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode Ollama response: %w", err)
+	var fullResponse strings.Builder
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		var result map[string]interface{}
+		if err := json.Unmarshal(scanner.Bytes(), &result); err != nil {
+			return nil, fmt.Errorf("failed to decode Ollama response: %w", err)
+		}
+		if response, ok := result["response"].(string); ok {
+			fullResponse.WriteString(response)
+		}
+		if done, ok := result["done"].(bool); ok && done {
+			break
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading Ollama response: %w", err)
 	}
 
 	review := &model.Review{
@@ -81,16 +97,14 @@ func (c *Client) reviewWithOllama(ctx context.Context, pr *model.PullRequest) (*
 		Suggestions: []*model.Suggestion{},
 	}
 
-	// Parse the Ollama response and create suggestions
-	// This is a simplified example; you may need to adjust based on the actual Ollama response format
-	if response, ok := result["response"].(string); ok {
-		suggestion := &model.Suggestion{
-			File:    pr.Files[0], // Assuming the suggestion is for the first file
-			Line:    1,           // Placeholder line number
-			Message: response,
-		}
-		review.Suggestions = append(review.Suggestions, suggestion)
+	// Parse the full Ollama response and create suggestions
+	// This is a simplified example; you may need to adjust based on your specific requirements
+	suggestion := &model.Suggestion{
+		File:    pr.Files[0], // Assuming the suggestion is for the first file
+		Line:    1,           // Placeholder line number
+		Message: fullResponse.String(),
 	}
+	review.Suggestions = append(review.Suggestions, suggestion)
 
 	return review, nil
 }
