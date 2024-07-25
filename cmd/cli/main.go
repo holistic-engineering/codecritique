@@ -30,7 +30,7 @@ func main() {
 		log.Fatalf("could not inititlize git client: %s", err)
 	}
 
-	reviwer := ai.New(ai.KindClaude35Sonnet)
+	reviwer := ai.New(ai.KindClaudeSonnet3_5)
 	critique := critique.New(fetcher, reviwer)
 	if err := critique.Criticize(context.Background(), owner, repo, prNumber); err != nil {
 		log.Fatalf("could not criticize pull request: %s", err)
