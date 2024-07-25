@@ -1,0 +1,6 @@
+[core]
+verbose = true
+
+[git]
+provider = github
+token = ""
