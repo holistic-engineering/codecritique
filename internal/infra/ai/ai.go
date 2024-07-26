@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"strings"
@@ -55,7 +56,10 @@ func (c *Client) Review(ctx context.Context, pr *model.PullRequest) (*model.Revi
 }
 
 func (c *Client) reviewWithOllama(ctx context.Context, pr *model.PullRequest) (*model.Review, error) {
-	prompt := c.generatePrompt(pr)
+	prompt, err := c.generatePrompt(pr)
+	if err != nil {
+		return nil, fmt.Errorf("could not generate prompt: %w", err)
+	}
 
 	requestBody, err := json.Marshal(map[string]string{
 		"model":  c.ollamaModel,
@@ -119,7 +123,10 @@ func (c *Client) reviewWithOllama(ctx context.Context, pr *model.PullRequest) (*
 }
 
 func (c *Client) reviewWithGroq(ctx context.Context, pr *model.PullRequest) (*model.Review, error) {
-	prompt := c.generatePrompt(pr)
+	prompt, err := c.generatePrompt(pr)
+	if err != nil {
+		return nil, fmt.Errorf("could not generate prompt: %w", err)
+	}
 
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"model": c.groqModel,
@@ -190,11 +197,72 @@ func (c *Client) reviewWithGroq(ctx context.Context, pr *model.PullRequest) (*mo
 	return review, nil
 }
 
-func (c *Client) generatePrompt(pr *model.PullRequest) string {
-	prompt := fmt.Sprintf("Review the following pull request:\n\nTitle: %s\nDescription: %s\n\n", pr.Title, pr.Description)
-	for _, file := range pr.Files {
-		prompt += fmt.Sprintf("File: %s\nContent:\n%s\n\n", file.Name, file.Content)
+const reviewPromptTemplate = `You are PR-Reviewer, an AI language model designed to review pull requests.
+
+Your goal is to review the code changes in the provided pull request and offer feedback and suggestions for improvement.
+Be informative, constructive, and give examples. Try to be as specific as possible.
+
+Please provide your review in JSON format with the following structure:
+{
+  "review": {
+    "summary": "A brief summary of the PR",
+    "overall_impression": "Your overall impression of the changes",
+    "code_quality": {
+      "strengths": ["List of strengths in the code"],
+      "areas_for_improvement": ["List of areas that could be improved"]
+    },
+    "potential_issues": ["List of potential issues or bugs"],
+    "suggestions": ["List of suggestions for improvement"],
+    "security_concerns": "Any security concerns, or 'None identified' if none",
+    "testing": "Comments on test coverage and suggestions for additional tests",
+    "estimated_effort_to_review": "Estimated effort to review on a scale of 1-5",
+    "code_feedback": [
+      {
+        "file": "Filename",
+        "line": "Line number (if applicable)",
+        "suggestion": "Specific suggestion for this file/line"
+      }
+    ]
+  }
+}
+
+Here are some guidelines for your review:
+- Focus on code quality, potential issues, and suggestions for improvement.
+- Comment on code readability, maintainability, and adherence to best practices.
+- Identify any potential bugs or edge cases that may not be handled.
+- Suggest optimizations or alternative approaches where appropriate.
+- Consider the overall architecture and design of the changes.
+- Assess whether the code changes match the PR description and solve the intended problem.
+- Evaluate test coverage and suggest additional test scenarios if needed.
+
+PR Information:
+Title: {{.Title}}
+Description: {{.Description}}
+
+Files changed:
+{{range .Files}}- {{.Name}}
+{{end}}
+
+File contents:
+{{range .Files}}
+File: {{.Name}}
+Content:
+{{.Content}}
+
+{{end}}
+Please review the provided pull request and provide your feedback in the JSON format specified above.`
+
+func (c *Client) generatePrompt(pr *model.PullRequest) (string, error) {
+	tmpl, err := template.New("reviewPrompt").Parse(reviewPromptTemplate)
+	if err != nil {
+		return "", err
 	}
-	prompt += "Please provide a code review for this pull request. Focus on code quality, potential issues, and suggestions for improvement."
-	return prompt
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, pr)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
