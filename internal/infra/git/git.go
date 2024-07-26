@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v57/github"
+	"github.com/holistic-engineering/codecritique/config"
 	"github.com/holistic-engineering/codecritique/internal/critique/model"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
@@ -24,30 +25,30 @@ type Client struct {
 	gitlabClient *gitlab.Client
 }
 
-func New(provider Provider, token string) (*Client, error) {
-	switch provider {
+func New(cfg *config.GitConfig) (*Client, error) {
+	switch Provider(cfg.Provider) {
 	case GitHub:
 		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
+			&oauth2.Token{AccessToken: cfg.Token},
 		)
 		tc := oauth2.NewClient(ctx, ts)
 		client := github.NewClient(tc)
 		return &Client{
-			provider:     provider,
+			provider:     GitHub,
 			githubClient: client,
 		}, nil
 	case GitLab:
-		client, err := gitlab.NewClient(token)
+		client, err := gitlab.NewClient(cfg.Token)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitLab client: %w", err)
 		}
 		return &Client{
-			provider:     provider,
+			provider:     GitLab,
 			gitlabClient: client,
 		}, nil
 	default:
-		return nil, fmt.Errorf("unsupported Git provider: %s", provider)
+		return nil, fmt.Errorf("unsupported Git provider: %s", cfg.Provider)
 	}
 }
 

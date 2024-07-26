@@ -8,19 +8,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
+	"github.com/holistic-engineering/codecritique/config"
 	"github.com/holistic-engineering/codecritique/internal/critique/model"
 )
 
 type Provider string
 
 const (
-	ProviderOllama    Provider = "Ollama"
-	ProviderOpenAI    Provider = "OpenAI"
 	ProviderAnthropic Provider = "Anthropic"
 	ProviderGroq      Provider = "Groq"
+	ProviderOllama    Provider = "Ollama"
+	ProviderOpenAI    Provider = "OpenAI"
 )
 
 type Client struct {
@@ -31,13 +31,13 @@ type Client struct {
 	groqModel   string
 }
 
-func New(provider Provider) *Client {
+func New(cfg *config.AIConfig) *Client {
 	return &Client{
-		provider:    provider,
-		ollamaURL:   "http://localhost:11434/api/generate",
-		ollamaModel: "llama3.1",
-		groqAPIKey:  os.Getenv("GROQ_API_KEY"), // Set this via environment variable or configuration
-		groqModel:   "mixtral-8x7b-32768",      // Default Groq model
+		provider:    Provider(cfg.Provider),
+		ollamaURL:   cfg.OllamaURL,
+		ollamaModel: cfg.OllamaModel,
+		groqAPIKey:  cfg.GroqAPIKey,
+		groqModel:   cfg.GroqModel,
 	}
 }
 

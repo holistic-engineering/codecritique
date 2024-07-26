@@ -6,42 +6,37 @@ import (
 	"os"
 	"strings"
 
+	"github.com/holistic-engineering/codecritique/config"
 	"github.com/holistic-engineering/codecritique/internal/critique"
 	"github.com/holistic-engineering/codecritique/internal/infra/ai"
 	"github.com/holistic-engineering/codecritique/internal/infra/git"
 )
 
 func main() {
-	if len(os.Args) < 4 {
-		log.Fatal("Usage: codecritique <owner/repo> <pr_number> <ai_provider>")
+	if len(os.Args) < 3 {
+		log.Fatal("Usage: codecritique <owner/repo> <pr_number>")
 	}
 
-	repoPath, prNumber, aiProvider := os.Args[1], os.Args[2], os.Args[3]
+	cfg, err := config.LoadConfig("settings/settings.toml")
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %s", err)
+	}
+
+	repoPath, prNumber := os.Args[1], os.Args[2]
 	parts := strings.Split(repoPath, "/")
 	if len(parts) != 2 {
 		log.Fatal("Invalid repository path. Use the format: owner/repo")
 	}
 
 	owner, repo := parts[0], parts[1]
-	token := os.Getenv("GIT_TOKEN")
 
-	fetcher, err := git.New(git.GitHub, token)
+	git, err := git.New(&cfg.Git)
 	if err != nil {
 		log.Fatalf("could not initialize git client: %s", err)
 	}
 
-	var reviewer ai.Provider
-	switch strings.ToLower(aiProvider) {
-	case "ollama":
-		reviewer = ai.ProviderOllama
-	case "groq":
-		reviewer = ai.ProviderGroq
-	default:
-		log.Fatalf("unsupported AI provider: %s", aiProvider)
-	}
-
-	aiClient := ai.New(reviewer)
-	critique := critique.New(fetcher, aiClient)
+	ai := ai.New(&cfg.AI)
+	critique := critique.New(git, ai)
 	if err := critique.Criticize(context.Background(), owner, repo, prNumber); err != nil {
 		log.Fatalf("could not criticize pull request: %s", err)
 	}

@@ -1,5 +1,36 @@
 package config
 
+import (
+	"github.com/pelletier/go-toml"
+)
+
 type Config struct {
-	// TODO: add respecitve properties from the settings
+	Git GitConfig `toml:"git"`
+	AI  AIConfig  `toml:"ai"`
+}
+
+type GitConfig struct {
+	Provider string `toml:"provider"`
+	Token    string `toml:"token"`
+}
+
+type AIConfig struct {
+	Provider    string `toml:"provider"`
+	OllamaURL   string `toml:"ollama_url"`
+	OllamaModel string `toml:"ollama_model"`
+	GroqAPIKey  string `toml:"groq_api_key"`
+	GroqModel   string `toml:"groq_model"`
+}
+
+func LoadConfig(filepath string) (*Config, error) {
+	config := &Config{}
+	tree, err := toml.LoadFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+	err = tree.Unmarshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }
