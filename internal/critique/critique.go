@@ -2,6 +2,7 @@ package critique
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/holistic-engineering/codecritique/internal/critique/model"
@@ -48,11 +49,8 @@ func (c *Critique) Criticize(
 	fmt.Printf("Title: %s\n", review.PullRequest.Title)
 	fmt.Printf("Description: %s\n\n", review.PullRequest.Description)
 
-	for _, suggestion := range review.Suggestions {
-		fmt.Printf("File: %s\n", suggestion.File.Name)
-		fmt.Printf("Line: %d\n", suggestion.Line)
-		fmt.Printf("Suggestion: %s\n\n", suggestion.Message)
-	}
+	reviewJSON, _ := json.MarshalIndent(&review, "", "    ")
+	fmt.Printf("Review: %s", reviewJSON)
 
 	return nil
 }

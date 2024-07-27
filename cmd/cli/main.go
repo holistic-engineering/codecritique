@@ -35,7 +35,11 @@ func main() {
 		log.Fatalf("could not initialize git client: %s", err)
 	}
 
-	ai := ai.New(&cfg.AI)
+	ai, err := ai.New(&cfg.AI)
+	if err != nil {
+		log.Fatalf("could not initilize ai client: %s", err)
+	}
+
 	critique := critique.New(git, ai)
 	if err := critique.Criticize(context.Background(), owner, repo, prNumber); err != nil {
 		log.Fatalf("could not criticize pull request: %s", err)

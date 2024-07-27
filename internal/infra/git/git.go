@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v57/github"
 	"github.com/holistic-engineering/codecritique/config"
@@ -74,35 +75,27 @@ func (c *Client) fetchGitHubPR(ctx context.Context, owner, repo, number string) 
 		return nil, fmt.Errorf("failed to fetch GitHub PR: %w", err)
 	}
 
-	files, _, err := c.githubClient.PullRequests.ListFiles(ctx, owner, repo, prNumber, nil)
+	// Fetch the diff
+	opt := &github.ListOptions{
+		PerPage: 100,
+	}
+	files, _, err := c.githubClient.PullRequests.ListFiles(ctx, owner, repo, prNumber, opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch GitHub PR files: %w", err)
 	}
 
-	modelFiles := make([]*model.File, len(files))
-	for i, file := range files {
-		content, _, _, err := c.githubClient.Repositories.GetContents(ctx, owner, repo, file.GetFilename(), &github.RepositoryContentGetOptions{
-			Ref: pr.GetHead().GetSHA(),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch file content: %w", err)
-		}
-
-		fileContent, err := content.GetContent()
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode file content: %w", err)
-		}
-
-		modelFiles[i] = &model.File{
-			Name:    file.GetFilename(),
-			Content: fileContent,
-		}
+	var diffBuilder strings.Builder
+	for _, file := range files {
+		diffBuilder.WriteString(fmt.Sprintf("## file: '%s'\n\n", file.GetFilename()))
+		diffBuilder.WriteString(file.GetPatch())
+		diffBuilder.WriteString("\n\n")
 	}
 
 	return &model.PullRequest{
 		Title:       pr.GetTitle(),
+		Branch:      pr.GetHead().GetRef(),
 		Description: pr.GetBody(),
-		Files:       modelFiles,
+		Diff:        diffBuilder.String(),
 	}, nil
 }
 
@@ -117,29 +110,23 @@ func (c *Client) fetchGitLabMR(owner, repo, number string) (*model.PullRequest, 
 		return nil, fmt.Errorf("failed to fetch GitLab MR: %w", err)
 	}
 
+	// Fetch the diff
 	changes, _, err := c.gitlabClient.MergeRequests.ListMergeRequestDiffs(owner+"/"+repo, mrNumber, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch GitLab MR changes: %w", err)
 	}
 
-	modelFiles := make([]*model.File, len(changes))
-	for i, change := range changes {
-		fileContent, _, err := c.gitlabClient.RepositoryFiles.GetRawFile(owner+"/"+repo, change.NewPath, &gitlab.GetRawFileOptions{
-			Ref: gitlab.Ptr(mr.SourceBranch),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch file content: %w", err)
-		}
-
-		modelFiles[i] = &model.File{
-			Name:    change.NewPath,
-			Content: string(fileContent),
-		}
+	var diffBuilder strings.Builder
+	for _, change := range changes {
+		diffBuilder.WriteString(fmt.Sprintf("## file: '%s'\n\n", change.NewPath))
+		diffBuilder.WriteString(change.Diff)
+		diffBuilder.WriteString("\n\n")
 	}
 
 	return &model.PullRequest{
 		Title:       mr.Title,
+		Branch:      mr.SourceBranch,
 		Description: mr.Description,
-		Files:       modelFiles,
+		Diff:        diffBuilder.String(),
 	}, nil
 }
