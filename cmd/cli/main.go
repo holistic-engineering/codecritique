@@ -10,6 +10,7 @@ import (
 	"github.com/holistic-engineering/codecritique/internal/critique"
 	"github.com/holistic-engineering/codecritique/internal/infra/ai"
 	"github.com/holistic-engineering/codecritique/internal/infra/git"
+	"github.com/holistic-engineering/codecritique/internal/infra/printer"
 )
 
 func main() {
@@ -40,7 +41,12 @@ func main() {
 		log.Fatalf("could not initilize ai client: %s", err)
 	}
 
-	critique := critique.New(git, ai)
+	printer, err := printer.New(&cfg.Printer)
+	if err != nil {
+		log.Fatalf("could not initilize printer: %s", err)
+	}
+
+	critique := critique.New(git, ai, printer)
 	if err := critique.Criticize(context.Background(), owner, repo, prNumber); err != nil {
 		log.Fatalf("could not criticize pull request: %s", err)
 	}

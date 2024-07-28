@@ -200,8 +200,6 @@ func (c *Client) parseResponse(response string, pr *model.PullRequest) (*model.R
 		Review model.Review `json:"review"`
 	}
 
-	fmt.Printf("AI RESPONSE: %s\n\n", response)
-
 	err := json.Unmarshal([]byte(response), &reviewData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal AI response: %w", err)

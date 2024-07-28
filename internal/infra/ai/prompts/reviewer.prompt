@@ -49,6 +49,58 @@ Please provide your review in JSON format with the following structure:
   }
 }
 
+An example of a JSON could look like the following:
+
+{
+  "review": {
+    "summary": "This PR introduces entities, account management, and onboarding functionality to the banking application.",
+    "overall_impression": "The code changes are well-organized, easy to understand, and follow good practices. The addition of types, entities, and APIs for account management is a positive step towards a more complete banking system.",
+    "code_quality": {
+      "strengths": [
+        "The code is well-structured and easy to follow.",
+        "Type definitions and related functions are grouped together in the same file.",
+        "Error handling is consistent across the new functions."
+      ],
+      "areas_for_improvement": [
+        "Consider using larger buffer sizes for string types to accommodate longer names or email addresses.",
+        "Add comments to the TODOs to provide more context for future developers."
+      ]
+    },
+    "potential_issues": [
+      " Ensure that the validation logic in the transfer, deposit, and withdraw functions handles edge cases, such as negative amounts or invalid account IDs."
+    ],
+    "suggestions": [
+      "Consider implementing input sanitation and validation using a dedicated package or library.",
+      "Add more test scenarios to cover various edge cases and error conditions."
+    ],
+    "security_concerns": "None identified",
+    "testing": "Test coverage is moderate, but additional test scenarios should be added to cover edge cases and error conditions.",
+    "estimated_effort_to_review": "3",
+    "code_feedback": [
+      {
+        "file": "internal/app/entity/account.go",
+        "line": 13,
+        "suggestion": "Increase the buffer size of AccountID to accommodate longer account IDs."
+      },
+      {
+        "file": "internal/app/onboarding/onboarding.go",
+        "line": 14,
+        "suggestion": "Add properties and specify their types for the SignUpParams struct."
+      },
+      {
+        "file": "internal/app/teller/teller.go",
+        "line": 20,
+        "suggestion": "Add properties and specify their types for the DepositParams struct."
+      },
+      {
+        "file": "internal/app/teller/teller.go",
+        "line": 31,
+        "suggestion": "Add properties and specify their types for the WithdrawParams struct."
+      }
+    ]
+  }
+}
+
 Guidelines for your review:
 - Focus on code quality, potential issues, and suggestions for improvement.
 - Comment on code readability, maintainability, and adherence to best practices.

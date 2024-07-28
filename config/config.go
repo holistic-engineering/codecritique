@@ -5,8 +5,9 @@ import (
 )
 
 type Config struct {
-	Git GitConfig `toml:"git"`
-	AI  AIConfig  `toml:"ai"`
+	Git     GitConfig     `toml:"git"`
+	AI      AIConfig      `toml:"ai"`
+	Printer PrinterConfig `toml:"printer"`
 }
 
 type GitConfig struct {
@@ -20,6 +21,10 @@ type AIConfig struct {
 	OllamaModel string `toml:"ollama_model"`
 	GroqAPIKey  string `toml:"groq_api_key"`
 	GroqModel   string `toml:"groq_model"`
+}
+
+type PrinterConfig struct {
+	Kind string `toml:"kind"`
 }
 
 func LoadConfig(filepath string) (*Config, error) {

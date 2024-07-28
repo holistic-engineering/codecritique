@@ -2,7 +2,6 @@ package critique
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/holistic-engineering/codecritique/internal/critique/model"
@@ -16,15 +15,25 @@ type reviewer interface {
 	Review(context.Context, *model.PullRequest) (*model.Review, error)
 }
 
+type printer interface {
+	Print(*model.Review) error
+}
+
 type Critique struct {
 	fetcher  fetcher
 	reviewer reviewer
+	printer  printer
 }
 
-func New(fetcher fetcher, reviewer reviewer) *Critique {
+func New(
+	fetcher fetcher,
+	reviewer reviewer,
+	printer printer,
+) *Critique {
 	return &Critique{
 		fetcher:  fetcher,
 		reviewer: reviewer,
+		printer:  printer,
 	}
 }
 
@@ -44,13 +53,10 @@ func (c *Critique) Criticize(
 		return fmt.Errorf("failed to review pull request: %w", err)
 	}
 
-	// Print the review results
-	fmt.Printf("Review for PR #%s in %s/%s\n", number, owner, repo)
-	fmt.Printf("Title: %s\n", review.PullRequest.Title)
-	fmt.Printf("Description: %s\n\n", review.PullRequest.Description)
-
-	reviewJSON, _ := json.MarshalIndent(&review, "", "    ")
-	fmt.Printf("Review: %s", reviewJSON)
+	// Print the review
+	if err := c.printer.Print(review); err != nil {
+		return fmt.Errorf("could not print review: %w", err)
+	}
 
 	return nil
 }

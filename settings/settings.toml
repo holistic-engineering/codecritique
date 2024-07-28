@@ -8,3 +8,6 @@ ollama_url = "http://localhost:11434/api/generate"
 ollama_model = "llama3.1"
 groq_api_key = "" # Set this via environment variable
 groq_model = "mixtral-8x7b-32768"
+
+[printer]
+kind = "json" # Options: json, html, markdown

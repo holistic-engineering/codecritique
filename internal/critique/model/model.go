@@ -26,7 +26,7 @@ type CodeQuality struct {
 }
 
 type Feedback struct {
-	File       string  `json:"file"`
-	Line       *string `json:"line,omitempty"`
-	Suggestion string  `json:"suggestion"`
+	File       string `json:"file"`
+	Line       *int   `json:"line,omitempty"`
+	Suggestion string `json:"suggestion"`
 }
